@@ -1,0 +1,273 @@
+// backend/index.js
+// DocuThinker - improved backend entry
+// Replace your existing file with this. Keep your controllers in ./controllers/controllers.
+
+const path = require("path");
+const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
+require("dotenv").config();
+
+const swaggerDocs = require("./swagger/swagger");
+const { initializeRedis } = require("./redis/redisClient");
+const { graphqlHTTP } = require("express-graphql");
+const { makeExecutableSchema } = require("@graphql-tools/schema");
+const typeDefs = require("./graphql/schema");
+const resolvers = require("./graphql/resolvers");
+
+// controllers (ensure this module exports the listed functions)
+const {
+  registerUser,
+  loginUser,
+  uploadDocument,
+  generateKeyIdeas,
+  generateDiscussionPoints,
+  chatWithAI,
+  forgotPassword,
+  verifyEmail,
+  getAllDocuments,
+  getDocumentById,
+  getDocumentDetails,
+  deleteAllDocuments,
+  deleteDocument,
+  getDaysSinceJoined,
+  getDocumentCount,
+  updateUserEmail,
+  updateUserPassword,
+  getUserEmail,
+  updateDocumentTitle,
+  getUserJoinedDate,
+  updateTheme,
+  updateSocialMedia,
+  getSocialMedia,
+  sentimentAnalysis,
+  actionableRecommendations,
+  summaryInLanguage,
+  bulletSummary,
+  contentRewriting,
+  searchDocuments,
+  processAudioFile,
+  refineSummary,
+} = require("./controllers/controllers");
+
+const app = express();
+
+/**
+ * Middleware
+ */
+// parse JSON and urlencoded bodies
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// Helmet — Content Security Policy tuned for Google APIs & Drive.
+// NOTE: For production, tighten these origins to your actual domains.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        "default-src": ["'self'"],
+        "script-src": [
+          "'self'",
+          "'unsafe-inline'",
+          "'unsafe-eval'",
+          "https://apis.google.com",
+          "https://www.gstatic.com",
+          "https://accounts.google.com",
+          "https://www.googletagmanager.com",
+        ],
+        "connect-src": [
+          "'self'",
+          "https://accounts.google.com",
+          "https://www.googleapis.com",
+          "https://content.googleapis.com",
+          "https://oauth2.googleapis.com",
+          // allow your backend to call other services (e.g. Google Cloud endpoints)
+          "https://*.googleapis.com",
+        ],
+        "frame-src": [
+          "'self'",
+          "https://accounts.google.com",
+          "https://www.google.com",
+          "https://www.gstatic.com",
+        ],
+        "img-src": [
+          "'self'",
+          "data:",
+          "blob:",
+          "https://www.gstatic.com",
+          "https://lh3.googleusercontent.com",
+          "https://*.googleusercontent.com",
+        ],
+        "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        "font-src": ["'self'", "https://fonts.gstatic.com"],
+      },
+    },
+  })
+);
+
+// CORS - for local dev allow localhost:3000 (frontend) and any origin if necessary.
+// In prod, replace origin: "*" with an explicit origin list.
+const corsOptions = {
+  origin: (origin, callback) => {
+    // allow requests with no origin (like mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    const allowed = [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://localhost:5000", // if you call backend from same origin
+      // add deployed frontend origins here, e.g. "https://docuthinker.vercel.app"
+    ];
+    if (allowed.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    // default: be permissive in dev
+    if (process.env.NODE_ENV !== "production") return callback(null, true);
+    return callback(new Error("Not allowed by CORS"), false);
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  credentials: true,
+};
+app.use(cors(corsOptions));
+
+// Serve static files from /public (favicon, pdf.worker if you host it locally)
+app.use(express.static(path.join(__dirname, "public")));
+
+// Initialize Redis (if configured)
+initializeRedis().catch((err) => {
+  // initialization function from redis/redisClient should log errors itself;
+  // we catch to avoid crashing the server in dev if Redis is not available.
+  console.warn("Redis initialize returned error (continuing):", err?.message || err);
+});
+
+// GraphQL endpoint
+try {
+  const schema = makeExecutableSchema({ typeDefs, resolvers });
+  app.use(
+    "/graphql",
+    graphqlHTTP({
+      schema,
+      graphiql: true,
+    })
+  );
+} catch (err) {
+  console.warn("GraphQL initialization failed (skipping):", err?.message || err);
+}
+
+// Swagger JSON & UI (simple embedded SwaggerUI)
+app.get("/swagger.json", (req, res) => {
+  res.json(swaggerDocs);
+});
+app.get("/api-docs", (req, res) => {
+  res.send(`
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8"/>
+        <title>DocuThinker API Docs</title>
+        <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
+      </head>
+      <body>
+        <div id="swagger-ui"></div>
+        <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
+        <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-standalone-preset.js"></script>
+        <script>
+          window.onload = function() {
+            SwaggerUIBundle({
+              url: '/swagger.json',
+              dom_id: '#swagger-ui',
+              presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+              layout: "StandaloneLayout"
+            });
+          }
+        </script>
+      </body>
+    </html>
+  `);
+});
+
+// Redirect root to API docs for convenience
+app.get("/", (req, res) => res.redirect("/api-docs"));
+
+// Simple request logger (dev)
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
+/**
+ * REST routes
+ * Ensure controllers/controllers.js exports the functions used below.
+ */
+app.post("/register", registerUser);
+app.post("/login", loginUser);
+
+// Upload route — IMPORTANT: this needs to exist and match the frontend POST path
+app.post("/upload", uploadDocument);
+
+// AI and utility endpoints
+app.post("/generate-key-ideas", generateKeyIdeas);
+app.post("/generate-discussion-points", generateDiscussionPoints);
+app.post("/chat", chatWithAI);
+app.post("/forgot-password", forgotPassword);
+app.post("/verify-email", verifyEmail);
+
+app.get("/documents/:userId", getAllDocuments);
+app.get("/documents/:userId/:docId", getDocumentById);
+app.get("/document-details/:userId/:docId", getDocumentDetails);
+app.delete("/documents/:userId/:docId", deleteDocument);
+app.delete("/documents/:userId", deleteAllDocuments);
+
+app.post("/update-email", updateUserEmail);
+app.post("/update-password", updateUserPassword);
+app.get("/days-since-joined/:userId", getDaysSinceJoined);
+app.get("/document-count/:userId", getDocumentCount);
+app.get("/users/:userId", getUserEmail);
+app.post("/update-document-title", updateDocumentTitle);
+app.get("/user-joined-date/:userId", getUserJoinedDate);
+app.put("/update-theme", updateTheme);
+app.get("/social-media/:userId", getSocialMedia);
+app.post("/update-social-media", updateSocialMedia);
+app.post("/sentiment-analysis", sentimentAnalysis);
+app.post("/actionable-recommendations", actionableRecommendations);
+app.post("/summary-in-language", summaryInLanguage);
+app.post("/bullet-summary", bulletSummary);
+app.post("/content-rewriting", contentRewriting);
+app.get("/search-documents/:userId", searchDocuments);
+app.post("/process-audio", processAudioFile);
+app.post("/refine-summary", refineSummary);
+
+/**
+ * 404 & Error handlers
+ * Keep 404 handler first so unknown routes return json.
+ */
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found", path: req.originalUrl });
+});
+
+// centralized error handler
+app.use((err, req, res, next) => {
+  console.error("Global error handler:", err && err.stack ? err.stack : err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  const status = err.status || 500;
+  res.status(status).json({
+    error: err.message || "Internal Server Error",
+    details: process.env.NODE_ENV === "production" ? undefined : err.stack,
+  });
+});
+
+// Start server
+const port = parseInt(process.env.PORT, 10) || 5000;
+if (process.env.NODE_ENV !== "production") {
+  app.listen(port, "0.0.0.0", () => {
+    console.log(`DocuThinker backend listening on http://localhost:${port}`);
+  });
+} else {
+  // in production the hosting provider (e.g. Render, Vercel serverless) may not use app.listen
+  console.log("DocuThinker backend configured for production (app exported).");
+}
+
+module.exports = app;
