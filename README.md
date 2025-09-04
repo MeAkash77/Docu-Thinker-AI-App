@@ -3,7 +3,7 @@
 Welcome to **DocuThinker**! This is a full-stack **(FERN-Stack)** application that integrates an AI-powered document processing backend with a React-based frontend. The app allows users to upload documents for summarization, generate key insights, and chat with an AI based on the document's content.
 
 <p align="center">
-  <a href="https://docuthinker.vercel.app" style="cursor: pointer">
+  <a href="https://docu-thinker-ai-app-ten.vercel.app/" style="cursor: pointer">
     <img src="images/logo.png" alt="DocuThinker Logo" width="45%" style="border-radius: 8px">
   </a>
 </p>
@@ -54,19 +54,18 @@ The **DocuThinker** app is designed to provide users with a simple, AI-powered d
 **DocuThinker** is created using the **FERN-Stack** architecture, which stands for **Firebase, Express, React, and Node.js**. The backend is built with Node.js and Express, integrating Firebase for user authentication and MongoDB for data storage. The frontend is built with React and Material-UI, providing a responsive and user-friendly interface.
 
 > [!IMPORTANT]
-> It is currently deployed live on **Vercel** and **Render**. You can access the live app **[here](https://docuthinker-fullstack-app.vercel.app/)**.
+> It is currently deployed live on **Vercel** and **Render**. You can access the live app **[here](https://docu-thinker-ai-app-ten.vercel.app/)**.
 
 <h2 id="live-deployments">🚀 Live Deployments</h2>
 
 > [!TIP]
-> Access the live app at **[https://docuthinker.vercel.app/](https://docuthinker.vercel.app/) by clicking on the link or copying it into your browser! 🚀**
+> Access the live app at **[https://docu-thinker-ai-app-ten.vercel.app/](https://docu-thinker-ai-app-ten.vercel.app/) by clicking on the link or copying it into your browser! 🚀**
 
-We have deployed the entire app on **Vercel** and **Render**. You can access the live app **[here](https://docuthinker.vercel.app)**.
+We have deployed the entire app on **Vercel** and **Render**. You can access the live app **[here](https://docu-thinker-ai-app-ten.vercel.app/)**.
 
-- **Frontend**: Deployed on **Vercel**. Access the live frontend **[here](https://docuthinker.vercel.app/)**.
-  - **Backup Frontend**: We have a backup of the frontend on **Netlify**. You can access the backup app **[here](https://docuthinker-ai-app.netlify.app/)**.
-- **Backend**: Deployed on **Vercel**. You can access the live backend **[here](https://docuthinker-app-backend-api.vercel.app/)**.
-  - **Backup Backend API**: Deployed on **Render**. You can access the backup backend **[here](https://docuthinker-ai-app.onrender.com/)**.
+- **Frontend**: Deployed on **Vercel**. Access the live frontend **[here](https://docu-thinker-ai-app-ten.vercel.app/)**.
+  - **Backup Frontend**: We have a backup of the frontend on **Netlify**. You can access the backup app **[here](https://docu-thinker-ai-app-ten.vercel.app/)**.
+- **Backend**: Deployed on **Vercel**. You can access the live backend **[here](https://docu-thinker-ai-app-usu3.vercel.app/api-docs)**.
 
 > [!IMPORTANT]
 > The backend server may take a few seconds to wake up if it has been inactive for a while. The first API call may take a bit longer to respond. Subsequent calls should be faster as the server warms up.
