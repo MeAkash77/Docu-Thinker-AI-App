@@ -1,4 +1,4 @@
-# **DocuThinker - AI-Powered Document Analysis and Summarization App**
+# **Docu-Thinker - AI-Powered Document Analysis and Summarization App**
 
 Welcome to **DocuThinker**! This is a full-stack **(FERN-Stack)** application that integrates an AI-powered document processing backend with a React-based frontend. The app allows users to upload documents for summarization, generate key insights, and chat with an AI based on the document's content.
 
